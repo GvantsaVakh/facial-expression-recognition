@@ -617,49 +617,29 @@ learning rate scheduler
 
 label smoothing დავამატე overconfidence-ის შესამცირებლად. gradient clipping დავამატე training-ის სტაბილურობისთვის.
 
-### შედეგი
-
-ResNet18 small-input / two-stage fine-tuning ექსპერიმენტმა საუკეთესო შედეგები მისცა პროექტში.
-
-ერთ-ერთ run-ში მიღებული იყო:
-
-```text
-Best validation accuracy ≈ 65.51%
-```
-
 საბოლოო test evaluation WandB-ზე დალოგილია ცალკე test run-ში.
-
-ResNet-ის final classification report-ში weighted average metrics დაახლოებით იყო:
-
-```text
-weighted precision ≈ 0.632
-weighted recall ≈ 0.635
-weighted F1-score ≈ 0.633
-```
 
 ### ანალიზი
 
 ResNet18-მა აჩვენა, რომ transfer learning სასარგებლოა, მაგრამ პირდაპირი გამოყენება საკმარისი არ იყო. საჭირო გახდა ResNet-ის ადაპტაცია პატარა grayscale input-ისთვის.
 
-თუ ResNet-ის ყველა layer თავიდანვე იხსნება, მოდელი სწრაფად overfit-ავს. Two-stage fine-tuning უკეთესი აღმოჩნდა, რადგან ჯერ classifier სწავლობდა ახალ task-ს, შემდეგ კი მხოლოდ ბოლო layers ერგებოდა FER dataset-ს.
-
-Experiment 05 საბოლოოდ გახდა საუკეთესო validation result-ის მქონე მოდელი და აჩვენა transfer learning-ის სარგებელი.
+Two-stage fine-tuning უკეთესი აღმოჩნდა, რადგან ჯერ classifier სწავლობდა ახალ task-ს, შემდეგ კი მხოლოდ ბოლო layers ერგებოდა FER dataset-ს. მიუხედავად ამისა, საუკეთესო შედეგი მაინც CNN-მა დააფიქსირა test data-ზე.
 
 ---
 
 # Final Comparison
 
-| Experiment    | Model                      |                                   Main Idea | Best Validation Accuracy | Main Observation                                   |
+| Experiment    | Model                      |                                   Main Idea |            Test Accuracy | Main Observation                                   |
 | ------------- | -------------------------- | ------------------------------------------: | -----------------------: | -------------------------------------------------- |
-| Experiment 01 | Simple CNN                 |                              Baseline model |                  ~50.02% | Pipeline worked, but model had limited capacity    |
-| Experiment 02 | CNN + BatchNorm + Dropout  |                  Deeper and regularized CNN |                     ~56% | Better feature extraction and more stable training |
-| Experiment 03 | CNN + Augmentation         |                          Reduce overfitting |                   57.45% | Train/validation gap became smaller                |
-| Experiment 04 | VGG-style CNN              |       Stronger custom CNN feature extractor |                   63.70% | Best custom CNN result                             |
-| Experiment 05 | ResNet18 Transfer Learning | Pretrained model with two-stage fine-tuning |                  ~65.51% | Best validation result overall                     |
+| Experiment 01 | Simple CNN                 |                              Baseline model |                  0.51312 | Pipeline worked, but model had limited capacity    |
+| Experiment 02 | CNN + BatchNorm + Dropout  |                  Deeper and regularized CNN |                  0.58324 | Better feature extraction and more stable training |
+| Experiment 03 | CNN + Augmentation         |                          Reduce overfitting |                  0.59601 | Train/validation gap became smaller                |
+| Experiment 04 | VGG-style CNN              |       Stronger custom CNN feature extractor |                  0.64918 | Best custom CNN result                             |
+| Experiment 05 | ResNet18 Transfer Learning | Pretrained model with two-stage fine-tuning |                  0.63524 | Best validation result overall                     |
 
 ---
 
-# Overfitting and Underfitting Analysis
+# Overfitting და Underfitting ანალიზი
 
 ### Underfitting
 
@@ -724,7 +704,7 @@ Forward/backward sanity checks აუცილებელია pipeline-ის
 
 ---
 
-# Conclusion
+# შეჯამება
 
 პროექტში ეტაპობრივად გავტესტე რამდენიმე განსხვავებული neural network architecture facial expression recognition-ისთვის.
 
