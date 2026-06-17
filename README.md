@@ -1,53 +1,245 @@
-## Experiments
+# Facial Expression Recognition Challenge
 
-This project uses the Facial Expression Recognition dataset, where each input image is a 48×48 grayscale face image and the target is one of seven emotion classes: Angry, Disgust, Fear, Happy, Sad, Surprise, and Neutral.
+## პროექტის ბმულები
 
-The experiments were developed step by step. I started with a simple CNN baseline to create a working training pipeline, then improved the architecture by adding more convolutional capacity and regularization.
+* **Weights & Biases Project:**
+  https://wandb.ai/gvakh23-tbilisi-free-university/Facial_Expression_Recognition?nw=nwusergvakh23
+
+* **Weights & Biases Report:**
+  https://wandb.ai/gvakh23-tbilisi-free-university/Facial_Expression_Recognition/reports/Facial-Expression-Recognition-Experiment-Report--VmlldzoxNzI1Nzc5MA/edit?draftId=VmlldzoxNzI1Nzc5MA%3D%3D
 
 ---
 
-# Experiment 01: Simple CNN Baseline
+## პროექტის აღწერა
 
-## Goal
+ეს პროექტი შესრულებულია Kaggle-ის competition-ისთვის: **Challenges in Representation Learning: Facial Expression Recognition Challenge**.
 
-The goal of the first experiment was to build a simple baseline model for facial expression recognition. I wanted to start with a small architecture before adding more advanced techniques. This made it easier to check whether the dataset loading, preprocessing, training loop, validation loop, and WandB logging were working correctly.
+ამოცანაა სახის სურათიდან ემოციის კლასიფიკაცია. თითოეული input არის 48×48 ზომის grayscale სახის სურათი, ხოლო target არის ერთ-ერთი 7 ემოციის კლასი:
 
-A simple CNN is a natural baseline for this task because the input is image data. Convolutional layers can learn local visual patterns such as edges, eyes, mouth shapes, eyebrows, and facial contours. These patterns are important for recognizing facial expressions.
+```text
+0 — Angry
+1 — Disgust
+2 — Fear
+3 — Happy
+4 — Sad
+5 — Surprise
+6 — Neutral
+```
 
-## Architecture
+პროექტის მთავარი მიზანი არ იყო მხოლოდ ერთი საუკეთესო მოდელის გაშვება. დავალების მოთხოვნის მიხედვით, მთავარი იყო ნეირონულ ქსელებთან პრაქტიკული მუშაობა PyTorch-ში, სხვადასხვა არქიტექტურის გამოცდა, ჰიპერპარამეტრების ცვლილება, overfitting/underfitting-ის ანალიზი და ყველა ექსპერიმენტის დალოგვა Weights & Biases-ზე.
 
-The baseline model used two convolutional layers followed by fully connected layers.
+ამიტომ პროექტი ავაგე ეტაპობრივად. დავიწყე პატარა CNN baseline-ით და შემდეგ ნელ-ნელა გავაუმჯობესე მოდელი: დავამატე Batch Normalization, Dropout, data augmentation, VGG-style CNN არქიტექტურა და ბოლოს ResNet18 transfer learning.
+
+---
+
+## რეპოზიტორიის სტრუქტურა
+
+რეპოზიტორიაში თითოეული მთავარი ექსპერიმენტი ცალკე notebook-ად არის წარმოდგენილი:
+
+```text
+.
+├── README.md
+├── Facial_Expression_Recognition_01.ipynb
+├── Facial_Expression_Recognition_02.ipynb
+├── Facial_Expression_Recognition_03.ipynb
+├── Facial_Expression_Recognition_04.ipynb
+├── Facial_Expression_Recognition_05.ipynb
+```
+
+notebook-ების დანიშნულება:
+
+```text
+Facial_Expression_Recognition_01.ipynb — Simple CNN baseline
+Facial_Expression_Recognition_02.ipynb — Improved CNN with BatchNorm and Dropout
+Facial_Expression_Recognition_03.ipynb — Data augmentation and regularized CNN
+Facial_Expression_Recognition_04.ipynb — VGG-style CNN
+Facial_Expression_Recognition_05.ipynb — ResNet18 transfer learning
+```
+
+მოდელების საუკეთესო checkpoint-ები შენახულია Google Drive-ზე, ხოლო საბოლოო ტესტირებისას notebook-ები checkpoint-ებს Drive-დან ტვირთავს და internal test set-ზე აფასებს.
+
+---
+
+## გამოყენებული ტექნოლოგიები
+
+პროექტში გამოყენებულია:
+
+```text
+Python
+PyTorch
+torchvision
+NumPy
+Pandas
+scikit-learn
+Matplotlib
+Weights & Biases
+Google Colab
+Kaggle API
+Google Drive
+```
+
+მოდელების training და evaluation ძირითადად Google Colab-ზე შესრულდა. ექსპერიმენტების metrics, hyperparameters, sanity checks, confusion matrices და classification reports დალოგილია WandB-ზე.
+
+---
+
+## მონაცემები და preprocessing
+
+dataset-ში სურათები ინახება pixel string-ის სახით. თითოეული row შეიცავს:
+
+```text
+emotion — target label
+pixels — 48×48 grayscale image-ის pixel values string ფორმატში
+```
+
+პირველ ეტაპზე pixel string გადავაქციე NumPy array-ად:
+
+```text
+pixels string → NumPy array → reshape(48, 48)
+```
+
+შემდეგ სურათები PyTorch Dataset/DataLoader-ებში გადავიტანე. მოდელების მიხედვით preprocessing ოდნავ განსხვავდებოდა. custom CNN მოდელებისთვის input ფორმა იყო:
+
+```text
+[batch_size, 1, 48, 48]
+```
+
+ანუ 1-channel grayscale image.
+
+ResNet18 ექსპერიმენტშიც საბოლოოდ შევინარჩუნე 48×48 grayscale input, მაგრამ ResNet-ის პირველი convolution შევცვალე ისე, რომ მიეღო 1-channel input.
+
+---
+
+## Train / Validation / Test split
+
+მონაცემები გავყავი სამ ნაწილად:
+
+```text
+Training set — მოდელის სასწავლად
+Validation set — hyperparameter tuning-ისთვის და best checkpoint-ის ასარჩევად
+Internal test set — საბოლოო შეფასებისთვის
+```
+
+გამოვიყენე stratified split, რომ ყველა emotion class წარმოდგენილი ყოფილიყო train, validation და test split-ებში.
+
+მნიშვნელოვანია, რომ test set არ გამომიყენებია მოდელის ასარჩევად. თითოეულ ექსპერიმენტში საუკეთესო checkpoint შეირჩა validation accuracy-ის მიხედვით, ხოლო ბოლოს checkpoint ჩაიტვირთა Drive-დან და შეფასდა internal test set-ზე.
+
+---
+
+## WandB Tracking
+
+ყველა ექსპერიმენტი დალოგილია Weights & Biases-ზე. თითოეულ არქიტექტურას აქვს ცალკე run. დალოგილი იყო:
+
+```text
+training loss
+validation loss
+training accuracy
+validation accuracy
+best validation accuracy
+learning rate
+hyperparameters
+model architecture
+number of trainable parameters
+final test loss
+final test accuracy
+forward sanity check
+backward sanity check
+confusion matrix
+classification report
+```
+
+ეს დამეხმარა ექსპერიმენტების შედარებაში და იმის ანალიზში, სად იყო overfitting, სად underfitting და რომელი ცვლილება რეალურად აუმჯობესებდა შედეგს.
+
+---
+
+## Sanity checks
+
+დავალებაში ყურადღება ექცეოდა არა მხოლოდ accuracy-ს, არამედ იმასაც, სწორად მუშაობდა თუ არა forward/backward pipeline.
+
+ამიტომ დავამატე sanity checks:
+
+### Forward pass check
+
+Forward check ამოწმებს, რომ model იღებს სწორ input shape-ს და აბრუნებს 7 logits-ს, რადგან გვაქვს 7 emotion class.
+
+მაგალითად output უნდა იყოს:
+
+```text
+[batch_size, 7]
+```
+
+ასევე მოწმდება, რომ output-ში არ არის NaN ან Inf მნიშვნელობები.
+
+### Backward pass check
+
+Backward check ითვლის loss-ს და იძახებს:
+
+```python
+loss.backward()
+```
+
+ამის შემდეგ მოწმდება, რომ trainable parameters-ზე gradients ნამდვილად წარმოიქმნა და gradient norm არ არის 0.
+
+### One-batch overfitting check
+
+ResNet ექსპერიმენტისთვის დამატებით გავაკეთე one-batch overfitting check. მოდელი რამდენჯერმე ვატრეინინგე ერთ mini-batch-ზე. მიზანი არ იყო generalization-ის გაზომვა, არამედ იმის დამტკიცება, რომ მოდელს სწავლა შეუძლია და optimizer/loss/backward update სწორად მუშაობს.
+
+one-batch check-ის შედეგი:
+
+```text
+Step 20/80 | Loss: 0.5913 | Accuracy: 0.9219
+Step 40/80 | Loss: 0.2479 | Accuracy: 0.9688
+Step 60/80 | Loss: 0.1448 | Accuracy: 1.0000
+Step 80/80 | Loss: 0.0802 | Accuracy: 1.0000
+```
+
+ეს ნიშნავს, რომ მოდელმა შეძლო ერთი batch-ის სრულად დამახსოვრება. შესაბამისად training pipeline სწორად მუშაობდა.
+
+---
+
+# Experiments
+
+## Experiment 01 — Simple CNN Baseline
+
+### მიზანი
+
+პირველი ექსპერიმენტის მიზანი იყო მარტივი baseline-ის შექმნა. არ მინდოდა პირდაპირ რთული არქიტექტურით დაწყება, რადგან პირველ რიგში საჭირო იყო pipeline-ის შემოწმება:
+
+```text
+data loading
+preprocessing
+Dataset/DataLoader
+training loop
+validation loop
+checkpoint saving
+WandB logging
+```
+
+### არქიტექტურა
+
+baseline მოდელი იყო პატარა CNN:
 
 ```text
 Input: 1 × 48 × 48 grayscale image
 
 Conv2d(1 → 16, kernel_size=3, padding=1)
 ReLU
-MaxPool2d(2)          # 48 × 48 → 24 × 24
+MaxPool2d(2)
 
 Conv2d(16 → 32, kernel_size=3, padding=1)
 ReLU
-MaxPool2d(2)          # 24 × 24 → 12 × 12
+MaxPool2d(2)
 
-Flatten               # 32 × 12 × 12 = 4608 features
+Flatten
 
-Linear(4608 → 128)
+Linear(32 * 12 * 12 → 128)
 ReLU
 
 Linear(128 → 7)
 ```
 
-This model was intentionally simple. It did not use Batch Normalization, Dropout, data augmentation, or class balancing. Because of that, it was useful as a clean baseline.
+### Hyperparameters
 
-## Why I Chose This Architecture
-
-I chose this architecture because it is small, fast to train, and easy to interpret. Since this was the first experiment, the purpose was not to build the best possible model immediately. The purpose was to create a reliable baseline that later experiments could be compared against.
-
-The model has enough capacity to learn basic facial features, but it is still simple enough to show whether additional improvements are actually useful.
-
-## Parameter Tuning
-
-I tested the baseline with different training settings. The first main run used:
+საწყისად გამოვცადე:
 
 ```text
 learning rate = 0.001
@@ -57,9 +249,7 @@ optimizer = Adam
 loss = CrossEntropyLoss
 ```
 
-This run showed that the model was learning, but validation accuracy was still limited.
-
-Then I modified the training setup by lowering the learning rate and increasing the number of epochs:
+შემდეგ learning rate შევამცირე და epochs გავზარდე:
 
 ```text
 learning rate = 0.0007
@@ -69,104 +259,79 @@ optimizer = Adam
 loss = CrossEntropyLoss
 ```
 
-This worked better. The smaller learning rate made training more controlled, and the larger number of epochs allowed the model to continue improving.
+ეს უკეთესი აღმოჩნდა, რადგან smaller learning rate უფრო კონტროლირებად training-ს იძლეოდა.
 
-## Results
+### შედეგი
 
-The best baseline run achieved approximately:
-
-```text
-Best validation accuracy: 50.02%
-```
-
-The training accuracy continued to increase during later epochs, but validation accuracy improved more slowly. This showed that the model was learning the training data, but it also started to overfit.
-
-The baseline result was useful because it gave a clear comparison point for later experiments.
-
-## Baseline Observation
-
-The SimpleCNN baseline proved that the training pipeline was correct and that a CNN could learn useful features from the FER images. However, the model was limited by its small capacity and lack of regularization.
-
-The main problems were:
+baseline-ის საუკეთესო validation accuracy იყო დაახლოებით:
 
 ```text
-- validation accuracy stopped improving strongly after some epochs
-- training accuracy became much higher than validation accuracy
-- validation loss started increasing in later epochs
+Best validation accuracy ≈ 50.02%
 ```
 
-This suggested that the next experiment should use a stronger CNN architecture and regularization methods.
+### ანალიზი
+
+Simple CNN-მა აჩვენა, რომ pipeline სწორად მუშაობდა და მოდელს შეეძლო სახის სურათებიდან რაღაც ნიშნების სწავლა. თუმცა მოდელი პატარა იყო და ჰქონდა შეზღუდული capacity.
+
+training accuracy იზრდებოდა, მაგრამ validation accuracy უფრო ნელა უმჯობესდებოდა. ეს მიუთითებდა overfitting-ის ნიშნებზე და იმაზე, რომ შემდეგ ექსპერიმენტში საჭირო იყო უფრო ძლიერი feature extractor და regularization.
 
 ---
 
-# Experiment 02: CNN with BatchNorm, Dropout, and Three Convolutional Blocks
+## Experiment 02 — CNN with BatchNorm and Dropout
 
-## Goal
+### მიზანი
 
-The goal of the second experiment was to improve the SimpleCNN baseline while still keeping the model small enough to train on Google Colab GPU.
-
-The first model showed signs of overfitting and had limited feature extraction capacity. Therefore, in the second experiment, I added:
+მეორე ექსპერიმენტში baseline CNN გავაუმჯობესე. დავამატე:
 
 ```text
-- one additional convolutional block
-- more convolutional channels
-- Batch Normalization
-- Dropout
-- weight decay
-- learning rate scheduling
+მესამე convolutional block
+უფრო მეტი channels
+Batch Normalization
+Dropout
+weight decay
+learning rate scheduler
 ```
 
-This experiment was designed as a controlled improvement over the baseline, not as a completely different model.
+მიზანი იყო უკეთესი feature extraction და უფრო სტაბილური training.
 
-## Final Architecture
-
-The final version of Experiment 02 used three convolutional blocks followed by a flatten-based classifier.
+### საბოლოო არქიტექტურა
 
 ```text
 Input: 1 × 48 × 48 grayscale image
 
-Conv2d(1 → 32, kernel_size=3, padding=1)
+Conv2d(1 → 32)
 BatchNorm2d(32)
 ReLU
-MaxPool2d(2)          # 48 × 48 → 24 × 24
+MaxPool
 
-Conv2d(32 → 64, kernel_size=3, padding=1)
+Conv2d(32 → 64)
 BatchNorm2d(64)
 ReLU
-MaxPool2d(2)          # 24 × 24 → 12 × 12
+MaxPool
 
-Conv2d(64 → 128, kernel_size=3, padding=1)
+Conv2d(64 → 128)
 BatchNorm2d(128)
 ReLU
-MaxPool2d(2)          # 12 × 12 → 6 × 6
+MaxPool
 
-Flatten               # 128 × 6 × 6 = 4608 features
+Flatten
 
 Dropout(0.3)
-
-Linear(4608 → 256)
+Linear(128 * 6 * 6 → 256)
 ReLU
-
 Dropout(0.3)
-
 Linear(256 → 7)
 ```
 
-## Why I Chose This Architecture
+### რატომ BatchNorm და Dropout?
 
-This model is a natural next step after the SimpleCNN baseline.
+Batch Normalization დავამატე, რომ training უფრო სტაბილური ყოფილიყო. უფრო ღრმა CNN-ში activation distributions შეიძლება იცვლებოდეს, რაც training-ს ართულებს. BatchNorm ამ პროცესს ასტაბილურებს.
 
-The baseline used two convolutional layers with 16 and 32 output channels. In Experiment 02, I increased the number of channels to 32, 64, and 128. This gives the model more capacity to learn facial features.
+Dropout დავამატე overfitting-ის შესამცირებლად. რადგან მოდელი baseline-ზე უფრო დიდი გახდა, საჭირო იყო regularization.
 
-I also added a third convolutional block. The first layers can learn simple features such as edges and small textures, while deeper layers can combine them into more meaningful facial patterns, such as eyes, mouth shapes, and eyebrow positions.
+### პრობლემა: GAP ვერსია
 
-Batch Normalization was added after every convolutional layer to make training more stable. Dropout was added before the fully connected layers to reduce overfitting. Weight decay was also used as another regularization method.
-
-## Stabilization Problem
-
-Before reaching the final version of Experiment 02, I tried a different architecture that used Global Average Pooling.
-
-That version looked like this:
+ამ ექსპერიმენტში თავიდან ვცადე Global Average Pooling ვერსია:
 
 ```text
 Conv blocks
@@ -175,29 +340,27 @@ Flatten
 Linear(128 → 7)
 ```
 
-The idea was to reduce the number of parameters and make the classifier smaller. However, this version performed worse and validation accuracy was unstable.
+იდეა იყო parameters-ის შემცირება და overfitting-ის შემცირება. მაგრამ შედეგი არასტაბილური და დაბალი იყო.
 
-The likely reason was that `AdaptiveAvgPool2d(1)` compressed each feature map into a single value. After this operation, the classifier received only 128 features. For facial expression recognition, this was probably too aggressive because expressions depend on spatial details: the location of the eyes, eyebrows, mouth, and other facial regions matters.
+GAP თითოეულ feature map-ს ერთ რიცხვად ასაშუალოებს. ანუ final feature representation ხდება მხოლოდ:
 
-In other words, the Global Average Pooling version removed too much spatial information before classification.
+```text
+128 features
+```
 
-## How I Fixed the Problem
+ამის გამო spatial information იკარგებოდა. Facial expression recognition-ში კი მნიშვნელოვანია, სად არის კონკრეტული feature: პირი, წარბები, თვალები და მათი მდებარეობა.
 
-To fix this, I removed Global Average Pooling and used a flatten-based classifier instead.
+### როგორ გამოვასწორე
 
-Instead of giving the classifier only 128 features, the corrected model keeps the final 6×6 spatial feature map:
+GAP ამოვიღე და დავაბრუნე Flatten + fully connected classifier:
 
 ```text
 128 × 6 × 6 = 4608 features
 ```
 
-This gives the classifier much more information about where facial features appear in the image.
+ამით classifier-მა მიიღო ბევრად მეტი spatial ინფორმაცია. ამის შემდეგ validation accuracy გაუმჯობესდა და training უფრო სტაბილური გახდა.
 
-The corrected model still uses Batch Normalization, Dropout, and weight decay, so it remains regularized, but it no longer compresses the spatial information too early.
-
-## Hyperparameters
-
-The final Experiment 02 setup used approximately:
+### Hyperparameters
 
 ```text
 learning rate = 0.0005
@@ -210,52 +373,30 @@ weight decay = 1e-4
 scheduler = ReduceLROnPlateau
 ```
 
-I used a slightly lower learning rate than the baseline because the model is deeper and has more parameters. A lower learning rate helped make training more stable.
-
-## Results
-
-The corrected Experiment 02 model performed better than the SimpleCNN baseline.
-
-Approximate validation results:
+### შედეგი
 
 ```text
-Experiment 01 SimpleCNN baseline:     best val accuracy ≈ 50.02%
-Experiment 02 improved CNN:           best val accuracy ≈ 56%
+Experiment 01 best val accuracy ≈ 50.02%
+Experiment 02 best val accuracy ≈ 56%
 ```
 
-This is an improvement of about 6 percentage points over the baseline.
+### ანალიზი
 
-The validation loss also generally decreased, and validation accuracy improved across training. This showed that the final version of the second architecture generalized better than the first baseline and better than the failed Global Average Pooling version.
+Experiment 02-მ აჩვენა, რომ convolutional capacity-ის გაზრდა და regularization რეალურად ეხმარება მოდელს. BatchNorm-მა training დაასტაბილურა, Dropout-მა და weight decay-მ კი overfitting შეამცირა.
 
-## Experiment 02 Observation
-
-Experiment 02 showed that increasing convolutional capacity helped the model learn better facial features. Adding Batch Normalization, Dropout, and weight decay made the deeper model more trainable and controlled overfitting.
-
-The most important lesson from this experiment was that architecture design is not only about adding more layers. The way the final feature representation is passed to the classifier also matters. Global Average Pooling reduced the representation too much for this task, while the flatten-based classifier preserved more spatial information and produced better validation accuracy.
+ყველაზე მნიშვნელოვანი გაკვეთილი იყო ის, რომ architecture-ში ბოლო feature representation ძალიან მნიშვნელოვანია. GAP ძალიან ძლიერად კუმშავდა ინფორმაციას, ხოლო Flatten + FC უკეთესი აღმოჩნდა ამ ამოცანისთვის.
 
 ---
 
-# Summary of First Two Experiments
+## Experiment 03 — Data Augmentation and Regularized Training
 
-| Experiment    | Main Change                                        | Best Validation Accuracy | Observation                                                   |
-| ------------- | -------------------------------------------------- | -----------------------: | ------------------------------------------------------------- |
-| Experiment 01 | SimpleCNN baseline                                 |                  ~50.02% | Good starting point, but limited capacity and overfitting     |
-| Experiment 02 | 3 Conv blocks + BatchNorm + Dropout + weight decay |                     ~56% | Better feature extraction and stronger validation performance |
+### მიზანი
 
-The first two experiments show a clear development path. The baseline created a simple working CNN pipeline. The second experiment improved the architecture by increasing convolutional capacity and adding regularization. The corrected second model became a stronger base for later experiments such as data augmentation, class imbalance handling, or residual architectures.
+მესამე ექსპერიმენტში არქიტექტურა ძირითადად იგივე დავტოვე, რაც Experiment 02-ში, მაგრამ training strategy შევცვალე. მიზანი იყო overfitting-ის შემცირება და generalization-ის გაუმჯობესება.
 
+### არქიტექტურა
 
-## Experiment 03: Data Augmentation and Regularized Training
-
-### Goal
-
-After Experiment 02, the model had improved compared to the baseline, but I still wanted to improve generalization. The previous CNN architecture was already stronger than the baseline, so in Experiment 03 I kept the same model architecture and focused on the training strategy instead.
-
-The main goal of this experiment was to reduce overfitting and make the model more robust to small variations in facial images.
-
-### Architecture
-
-Experiment 03 used the same architecture as Experiment 02:
+Experiment 03 იყენებდა იგივე CNN-ს:
 
 ```text
 Conv(1 → 32) → BatchNorm → ReLU → MaxPool
@@ -269,17 +410,15 @@ Dropout(0.3)
 Linear(256 → 7)
 ```
 
-The model had:
+მოდელს ჰქონდა:
 
 ```text
 1,274,823 trainable parameters
 ```
 
-This was useful because the architecture stayed fixed, so the effect of the training changes could be analyzed more clearly.
+### რა შევცვალე
 
-### What I Changed
-
-In this experiment, I added data augmentation to the training set. The augmentation included:
+დავამატე data augmentation:
 
 ```text
 Random horizontal flip
@@ -287,15 +426,19 @@ Small random rotation
 Small random translation
 ```
 
-The purpose was to make the model less dependent on exact face position and alignment. Since the images are only 48×48 pixels, I kept the augmentation relatively mild. Strong transformations could distort facial expressions and hurt performance.
+ეს იმიტომ გავაკეთე, რომ სახის სურათები შეიძლება ოდნავ განსხვავებულად იყოს მდებარეობით ან კუთხით. augmentation ეხმარება მოდელს, რომ exact pixel positions-ზე ნაკლებად იყოს დამოკიდებული.
 
-The validation set was not augmented, because validation should measure performance on unchanged images.
+სურათები მხოლოდ 48×48 იყო, ამიტომ augmentation არ უნდა ყოფილიყო ძალიან ძლიერი. ძლიერი rotation/translation ან blur სახის პატარა დეტალებს გააფუჭებდა.
 
-In the logged run, I also used class weighting with `WeightedCrossEntropyLoss`. This was tested because the FER dataset is imbalanced: some emotion classes appear much more often than others. Class weighting gives more importance to rare classes during training.
+### Class imbalance
 
-### Result
+ასევე გამოვცადე class weighting / WeightedCrossEntropyLoss, რადგან FER dataset-ში კლასები არ არის თანაბრად გადანაწილებული. მაგალითად ზოგი emotion ბევრად იშვიათია.
 
-Experiment 03 achieved:
+class weighting-ის იდეაა rare classes-ს მეტი მნიშვნელობა მიენიჭოს training-ის დროს. თუმცა პრაქტიკაში ეს ყოველთვის არ ზრდის overall accuracy-ს, რადგან მოდელი შეიძლება ზედმეტად ფოკუსირდეს იშვიათ კლასებზე.
+
+### შედეგი
+
+Experiment 03-ის შედეგი:
 
 ```text
 Best validation accuracy: 57.45%
@@ -305,33 +448,52 @@ Final training loss: 1.0982
 Final validation loss: 1.1048
 ```
 
-### Analysis
+### ანალიზი
 
-The most important result of Experiment 03 was not only the validation accuracy, but the relationship between training and validation performance.
+Experiment 03-ის ყველაზე მნიშვნელოვანი შედეგი ის იყო, რომ overfitting შემცირდა. training accuracy და validation accuracy ერთმანეთთან ახლოს იყო:
 
-The final training accuracy was about 58.60%, while the final validation accuracy was about 56.87%. These values are close to each other, which shows that the model was no longer strongly overfitting. Compared to earlier experiments, the gap between training and validation performance became smaller.
+```text
+train accuracy ≈ 58.60%
+val accuracy ≈ 56.87%
+```
 
-This suggests that data augmentation acted as a regularizer. It made the training task harder because the model saw slightly modified images during training, but this helped the model generalize better.
+ეს ნიშნავს, რომ მოდელი training set-ს ზედმეტად აღარ იმახსოვრებდა. augmentation-მა და regularization-მა training გაართულა, მაგრამ generalization გააუმჯობესა.
 
-Class weighting was also tested as a way to handle class imbalance. However, this kind of loss can sometimes reduce overall accuracy because the model gives more attention to rare classes. In this experiment, the final result was still useful because it showed that training strategy changes can reduce overfitting and improve robustness.
-
-Overall, Experiment 03 improved the training behavior of the model. It did not dramatically increase accuracy, but it made the model more stable and less overfitted.
+accuracy-ის ზრდა დიდი არ იყო, მაგრამ ეს ექსპერიმენტი მაინც მნიშვნელოვანი იყო, რადგან აჩვენა, როგორ მოქმედებს augmentation overfitting-ზე.
 
 ---
 
-## Experiment 04: VGG-Style CNN with Stronger Feature Extraction
+## Experiment 04 — VGG-style CNN
 
-### Goal
+### მიზანი
 
-After Experiment 03, the model generalized better, but the validation accuracy was still around 57%. For Experiment 04, I wanted to improve the model architecture again, but still stay within a custom CNN approach instead of immediately switching to a pretrained model.
+Experiment 03-მ overfitting შეამცირა, მაგრამ validation accuracy დაახლოებით 57%-ის გარშემო დარჩა. ამიტომ მეოთხე ექსპერიმენტში გადავწყვიტე ისევ არქიტექტურის გაუმჯობესება.
 
-The goal was to build a stronger CNN feature extractor while keeping the model small enough to train on Google Colab GPU.
+მიზანი იყო custom CNN-ის გაძლიერება pretrained მოდელის გამოყენების გარეშე.
 
-### Architecture
+### VGG-style იდეა
 
-Experiment 04 used a VGG-style CNN architecture. The main change was that each convolutional block now had two convolutional layers before max pooling.
+VGG-style CNN ნიშნავს, რომ თითო convolutional block-ში pooling-მდე ვიყენებთ რამდენიმე პატარა 3×3 convolution-ს.
 
-The architecture was:
+წინა მოდელებში მქონდა:
+
+```text
+Conv → MaxPool
+Conv → MaxPool
+Conv → MaxPool
+```
+
+VGG-style მოდელში გავაკეთე:
+
+```text
+Conv → Conv → MaxPool
+Conv → Conv → MaxPool
+Conv → Conv → MaxPool
+```
+
+ეს აძლევს მოდელს მეტ შესაძლებლობას, რომ spatial resolution-ის შემცირებამდე ისწავლოს local facial features.
+
+### არქიტექტურა
 
 ```text
 Block 1:
@@ -357,50 +519,42 @@ Dropout(0.35)
 Linear(512 → 7)
 ```
 
-The model had:
+მოდელს ჰქონდა:
 
 ```text
 2,650,727 trainable parameters
 ```
 
-### Why I Chose This Architecture
+### რატომ ეს არქიტექტურა?
 
-In Experiment 02 and Experiment 03, each block had only one convolutional layer before pooling. This means the spatial size was reduced quickly.
-
-In Experiment 04, I used two convolutional layers before each pooling operation. This allows the model to learn richer local patterns before reducing the image resolution.
-
-This is important for facial expression recognition because expressions depend on small facial details, such as:
+Facial expression recognition დამოკიდებულია პატარა დეტალებზე:
 
 ```text
-mouth corners
-eyebrow position
-eye shape
-cheek movement
-local facial texture
+პირის კუთხეები
+წარბის მდებარეობა
+თვალის ფორმა
+ლოყის მოძრაობა
+სახის local texture
 ```
 
-The VGG-style design gives the model more time to extract these local features before max pooling reduces the spatial dimensions.
+თუ pooling ძალიან ადრე ხდება, ნაწილი spatial detail იკარგება. VGG-style CNN ჯერ ორჯერ ამუშავებს feature maps-ს convolution-ით და მხოლოდ შემდეგ ამცირებს ზომას MaxPool-ით.
 
-### Training Setup
-
-Experiment 04 used:
+### Training setup
 
 ```text
-Optimizer: AdamW
-Learning rate: 0.0005
-Weight decay: 0.0005
-Dropout: 0.35
-Epochs: 25
-Batch size: 64
-Augmentation: horizontal flip + small rotation
-Scheduler: learning rate reduction during training
+optimizer = AdamW
+learning rate = 0.0005
+weight decay = 0.0005
+dropout = 0.35
+epochs = 25
+batch size = 64
+augmentation = horizontal flip + small rotation
+scheduler = ReduceLROnPlateau
 ```
 
-I used AdamW because it handles weight decay better than standard Adam. I also increased weight decay and used Dropout to control overfitting, because this model has more parameters than the previous CNNs.
+AdamW გამოვიყენე, რადგან weight decay-ს უკეთესად ამუშავებს, ვიდრე ჩვეულებრივი Adam. მოდელი უფრო დიდი იყო, ამიტომ გავზარდე regularization-იც.
 
-### Result
-
-Experiment 04 achieved the best result so far:
+### შედეგი
 
 ```text
 Best validation accuracy: 63.70%
@@ -411,25 +565,241 @@ Final validation loss: 1.0089
 Final learning rate: 0.000125
 ```
 
-### Analysis
+### ანალიზი
 
-Experiment 04 gave a large improvement over the previous experiments.
+Experiment 04 იყო დიდი improvement. საუკეთესო validation accuracy გაიზარდა:
 
-The best validation accuracy increased from about 57.45% in Experiment 03 to 63.70% in Experiment 04. This shows that improving the convolutional feature extractor was more effective than only changing the training strategy.
+```text
+Experiment 03: 57.45%
+Experiment 04: 63.70%
+```
 
-The model did start to overfit more than Experiment 03, because the final training accuracy was 72.59% while validation accuracy was 62.98%. However, this gap is expected because the model is larger and more expressive. The important point is that validation accuracy also improved significantly, so the additional capacity was useful.
+ეს აჩვენებს, რომ feature extractor-ის გაძლიერება უფრო ეფექტური იყო, ვიდრე მხოლოდ training strategy-ის შეცვლა.
 
-The learning rate scheduler also helped training. By the end of training, the learning rate had been reduced to 0.000125, which allowed the model to continue improving more carefully.
+მოდელში overfitting ისევ გამოჩნდა, რადგან train accuracy ბევრად მაღალი იყო validation accuracy-ზე. თუმცა validation accuracy-ც მნიშვნელოვნად გაიზარდა, ამიტომ additional capacity სასარგებლო აღმოჩნდა.
 
-Overall, Experiment 04 became the strongest custom CNN model in the project. It showed that a deeper VGG-style CNN with stronger feature extraction can perform much better than the simpler CNN architectures.
+Experiment 04 გახდა საუკეთესო custom CNN მოდელი.
 
 ---
 
-## Comparison of Experiments 03 and 04
+## Experiment 05 — ResNet18 Transfer Learning
 
-| Experiment    | Main Idea                                      | Train Accuracy | Validation Accuracy | Best Validation Accuracy | Observation                                                      |
-| ------------- | ---------------------------------------------- | -------------: | ------------------: | -----------------------: | ---------------------------------------------------------------- |
-| Experiment 03 | Same CNN + augmentation / regularized training |         58.60% |              56.87% |                   57.45% | Reduced overfitting and made train/validation performance closer |
-| Experiment 04 | VGG-style CNN with two convolutions per block  |         72.59% |              62.98% |                   63.70% | Much stronger feature extraction and best custom CNN result      |
+### მიზანი
 
-Experiment 03 mainly improved generalization and reduced overfitting. Experiment 04 improved the architecture itself and achieved the best validation accuracy so far.
+მეხუთე ექსპერიმენტში შევამოწმე transfer learning. წინა მოდელები თავიდან ბოლომდე scratch-იდან ვატრეინინგე. ResNet18 კი pretrained მოდელია, რომელიც უკვე სწავლობდა visual features-ს დიდ dataset-ზე.
+
+მიზანი იყო შემემოწმებინა, pretrained features გააუმჯობესებდა თუ არა შედეგს custom CNN-ებთან შედარებით.
+
+### საწყისი პრობლემა
+
+სტანდარტული ResNet18 განკუთვნილია 224×224 RGB სურათებისთვის. FER dataset-ში კი გვაქვს:
+
+```text
+48×48 grayscale images
+```
+
+ამიტომ პირდაპირ ResNet18-ის გამოყენება იდეალური არ იყო. პირველი ცდისას ResNet ძალიან სწრაფად overfit-ავდა: train accuracy ძალიან მაღლა ადიოდა, validation კი მალე ჩერდებოდა.
+
+### Small-input ResNet ცვლილება
+
+ResNet უკეთ რომ მორგებოდა 48×48 grayscale სურათებს, შევცვალე მისი პირველი ნაწილი:
+
+```text
+original ResNet conv1:
+7×7 convolution, stride=2, RGB input
+
+modified conv1:
+3×3 convolution, stride=1, grayscale input
+```
+
+ასევე ამოვიღე early maxpool:
+
+```text
+resnet.maxpool = Identity()
+```
+
+ეს გაკეთდა იმიტომ, რომ 48×48 სურათებში spatial information ძალიან სწრაფად არ დაკარგულიყო. facial expressions პატარა დეტალებზეა დამოკიდებული, ამიტომ early aggressive downsampling ცუდად მოქმედებდა.
+
+### Two-stage fine-tuning
+
+საბოლოოდ გამოვიყენე two-stage fine-tuning:
+
+#### Stage 1
+
+პირველ ეტაპზე გავყინე ResNet feature extractor და ვატრეინინგე მხოლოდ classifier head:
+
+```text
+trainable layers: classifier only
+learning rate = 0.001
+```
+
+ამ ეტაპზე classifier სწავლობდა FER-ის 7 emotion class-ს.
+
+#### Stage 2
+
+მეორე ეტაპზე გავხსენი ResNet-ის ბოლო layers:
+
+```text
+trainable layers: layer3 + layer4 + classifier
+learning rate = 0.00005
+```
+
+ადრეული layers გაყინული დავტოვე, რადგან ისინი general visual features-ს ინახავენ. ბოლო layers კი task-specific features-ზე fine-tune-და.
+
+### დამატებითი regularization
+
+ResNet ექსპერიმენტში გამოვიყენე:
+
+```text
+AdamW
+weight decay = 5e-4
+dropout = 0.4
+label smoothing = 0.05
+gradient clipping
+learning rate scheduler
+```
+
+label smoothing დავამატე overconfidence-ის შესამცირებლად. gradient clipping დავამატე training-ის სტაბილურობისთვის.
+
+### შედეგი
+
+ResNet18 small-input / two-stage fine-tuning ექსპერიმენტმა საუკეთესო შედეგები მისცა პროექტში.
+
+ერთ-ერთ run-ში მიღებული იყო:
+
+```text
+Best validation accuracy ≈ 65.51%
+```
+
+საბოლოო test evaluation WandB-ზე დალოგილია ცალკე test run-ში, სადაც ჩაიტვირთა Drive-ზე შენახული checkpoint და შეფასდა internal test set-ზე.
+
+ResNet-ის final classification report-ში weighted average metrics დაახლოებით იყო:
+
+```text
+weighted precision ≈ 0.632
+weighted recall ≈ 0.635
+weighted F1-score ≈ 0.633
+```
+
+weighted recall შეესაბამება overall test accuracy-ს, ანუ final test accuracy დაახლოებით 63.5%-ის გარშემო იყო.
+
+### ანალიზი
+
+ResNet18-მა აჩვენა, რომ transfer learning სასარგებლოა, მაგრამ პირდაპირი გამოყენება საკმარისი არ იყო. საჭირო გახდა ResNet-ის ადაპტაცია პატარა grayscale input-ისთვის.
+
+თუ ResNet-ის ყველა layer თავიდანვე იხსნება, მოდელი სწრაფად overfit-ავს. Two-stage fine-tuning უკეთესი აღმოჩნდა, რადგან ჯერ classifier სწავლობდა ახალ task-ს, შემდეგ კი მხოლოდ ბოლო layers ერგებოდა FER dataset-ს.
+
+Experiment 05 საბოლოოდ გახდა საუკეთესო validation result-ის მქონე მოდელი და აჩვენა transfer learning-ის სარგებელი.
+
+---
+
+# Final Comparison
+
+| Experiment    | Model                      |                                   Main Idea | Best Validation Accuracy | Main Observation                                   |
+| ------------- | -------------------------- | ------------------------------------------: | -----------------------: | -------------------------------------------------- |
+| Experiment 01 | Simple CNN                 |                              Baseline model |                  ~50.02% | Pipeline worked, but model had limited capacity    |
+| Experiment 02 | CNN + BatchNorm + Dropout  |                  Deeper and regularized CNN |                     ~56% | Better feature extraction and more stable training |
+| Experiment 03 | CNN + Augmentation         |                          Reduce overfitting |                   57.45% | Train/validation gap became smaller                |
+| Experiment 04 | VGG-style CNN              |       Stronger custom CNN feature extractor |                   63.70% | Best custom CNN result                             |
+| Experiment 05 | ResNet18 Transfer Learning | Pretrained model with two-stage fine-tuning |                  ~65.51% | Best validation result overall                     |
+
+---
+
+# Overfitting and Underfitting Analysis
+
+### Underfitting
+
+პირველი მოდელი შედარებით underpowered იყო. SimpleCNN-ს ჰქონდა მცირე capacity და მხოლოდ ორი convolutional layer. ამიტომ validation accuracy დაახლოებით 50%-თან გაჩერდა.
+
+ეს არ იყო ძლიერი underfitting იმ გაგებით, რომ მოდელი საერთოდ ვერ სწავლობდა, მაგრამ მისი capacity საკმარისი არ იყო რთული facial expression patterns-ის დასაჭერად.
+
+### Overfitting
+
+Overfitting ყველაზე კარგად ჩანდა Experiment 04 და Experiment 05-ში.
+
+Experiment 04-ში VGG-style CNN-ის train accuracy ბევრად მაღალი გახდა validation accuracy-ზე:
+
+```text
+train accuracy ≈ 72.59%
+validation accuracy ≈ 62.98%
+```
+
+ეს აჩვენებდა overfitting-ს, მაგრამ validation accuracy მაინც მნიშვნელოვნად გაუმჯობესდა, ამიტომ მოდელის გაზრდა სასარგებლო იყო.
+
+Experiment 05-ში ResNet კიდევ უფრო სწრაფად მიდიოდა overfitting-ისკენ, რადგან pretrained model-ს დიდი capacity აქვს. ამის გამო გამოვიყენე two-stage fine-tuning, label smoothing, dropout და gradient clipping.
+
+### Generalization improvement
+
+Experiment 03 იყო ყველაზე კარგი მაგალითი overfitting-ის შემცირების. data augmentation-ის შემდეგ training და validation accuracy ძალიან ახლოს იყო:
+
+```text
+train accuracy ≈ 58.60%
+validation accuracy ≈ 56.87%
+```
+
+ეს აჩვენებდა, რომ augmentation-მა regularization-ის როლი შეასრულა.
+
+---
+
+# Final Test Evaluation
+
+საბოლოო ტესტირება გაკეთდა შენახული checkpoint-ების გამოყენებით. თითოეული notebook-ის ბოლოს დაემატა test section, რომელიც აკეთებს:
+
+```text
+1. checkpoint-ის ჩატვირთვა Google Drive-დან
+2. forward sanity check
+3. backward sanity check
+4. internal test evaluation
+5. confusion matrix logging
+6. classification report logging
+7. test loss და test accuracy logging WandB-ზე
+```
+
+ეს მნიშვნელოვანია, რადგან test evaluation არ ეყრდნობა memory-ში დარჩენილ trained model-ს. ყველა final result მოდის შენახული checkpoint-იდან.
+
+---
+
+# What I Learned
+
+ამ პროექტში ვისწავლე, რომ მოდელის გაუმჯობესება მხოლოდ layers-ის დამატებას არ ნიშნავს. ყოველი ცვლილება უნდა იყოს გაანალიზებული.
+
+პირველ რიგში საჭიროა working baseline. შემდეგ შეიძლება capacity-ის გაზრდა, regularization-ის დამატება, augmentation-ის გამოყენება და ბოლოს pretrained model-ის შედარება.
+
+ასევე მნიშვნელოვანია overfitting-ის და underfitting-ის ამოცნობა training/validation curves-იდან. WandB ძალიან დამეხმარა ამ პროცესში, რადგან ყველა experiment-ის metrics ერთ სივრცეში იყო შენახული და შედარება მარტივი გახდა.
+
+ყველაზე მნიშვნელოვანი დასკვნები:
+
+```text
+პატარა CNN კარგი baseline იყო, მაგრამ შეზღუდული capacity ჰქონდა.
+BatchNorm და Dropout training-ს ასტაბილურებს.
+GAP ზედმეტად კუმშავდა spatial information-ს და ამ task-ზე ცუდად იმუშავა.
+Data augmentation ამცირებს overfitting-ს.
+VGG-style CNN უკეთ სწავლობს local facial features-ს.
+ResNet18-ს სჭირდება ადაპტაცია 48×48 grayscale input-ზე.
+Two-stage fine-tuning transfer learning-ს უფრო სტაბილურს ხდის.
+Forward/backward sanity checks აუცილებელია pipeline-ის დასადასტურებლად.
+```
+
+---
+
+# Conclusion
+
+პროექტში ეტაპობრივად გავტესტე რამდენიმე განსხვავებული neural network architecture facial expression recognition-ისთვის.
+
+დავიწყე SimpleCNN baseline-ით, შემდეგ დავამატე BatchNorm, Dropout და დამატებითი convolutional block. ამის შემდეგ გამოვცადე data augmentation და class imbalance handling. შემდეგ ავაგე VGG-style CNN, რომელმაც custom CNN-ებში საუკეთესო შედეგი აჩვენა. ბოლოს გამოვიყენე ResNet18 transfer learning და two-stage fine-tuning, რომელმაც საუკეთესო validation accuracy მიიღო.
+
+საბოლოოდ, პროექტი აჩვენებს სრულ iterative deep learning workflow-ს:
+
+```text
+baseline model
+architecture improvement
+regularization
+augmentation
+overfitting analysis
+transfer learning
+sanity checks
+final checkpoint evaluation
+WandB tracking
+```
+
+ყველა ექსპერიმენტი დალოგილია WandB-ზე და შედეგები შეჯამებულია WandB report-ში.
